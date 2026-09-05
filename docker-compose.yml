@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   web:
-    build: .
+    image: ${DOCKER_IMAGE:-ghcr.io/adrian-wozniak-wat/shere:latest}
     command: web
     volumes:
       - .:/app
@@ -14,7 +14,7 @@ services:
       - rabbitmq
 
   celery_worker:
-    build: .
+    image: ${DOCKER_IMAGE:-ghcr.io/adrian-wozniak-wat/shere:latest}
     command: worker
     volumes:
       - .:/app
@@ -27,7 +27,7 @@ services:
       - web
 
   celery_beat:
-    build: .
+    image: ${DOCKER_IMAGE:-ghcr.io/adrian-wozniak-wat/shere:latest}
     command: beat  
     volumes:
       - .:/app
