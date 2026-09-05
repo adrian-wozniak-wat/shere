@@ -1,0 +1,163 @@
+# Home Assistant Emotion Research (HAER)
+
+Home Assistant Emotion Research (HAER) is an advanced Django-based research framework designed to study the correlations between user emotional states and domestic environments. By integrating directly with Home Assistant (HA), HAER captures real-time smart home device states (such as lighting levels, room temperatures, and media player activity) alongside user facial emotions analyzed from home cameras.
+
+This data provides researchers and smart home enthusiasts with empirical logs to design and evaluate emotional-aware ambient intelligence and adaptive automation.
+
+---
+
+## 🌟 Key Features
+
+*   **🔒 Secure Credentials Store**: Sensitive Long-Lived Access Tokens (LLAT) for Home Assistant are encrypted using symmetric Fernet encryption (`cryptography`) before being persisted in the database.
+*   **🧠 Deep Learning Emotion Detection**: Leverages **DeepFace** (backed by PyTorch and headless OpenCV) to perform high-fidelity facial analysis, recognizing dominant emotions (Happy, Sad, Angry, Surprised, Fear, Disgust, Neutral) and confidence scores.
+*   **⏱️ Distributed Periodic Polling**: Automated heartbeat checks driven by **Celery** and **Celery Beat** run every 30 seconds to query device states and camera frames in parallel, preventing UI blocking.
+*   **📊 Unified Data Analysis Matrix**: A comprehensive dashboard showing historical poll cycles aligning camera snapshots with concurrent smart entity states.
+*   **📥 CSV Exporter**: Export the unified database logs with a single click to perform data modeling, statistical correlation, or train predictive models.
+*   **🔌 Plug-and-Play Configuration**: Add and edit cameras or entities dynamically via the configuration UI.
+
+---
+
+## 🏗️ System Architecture
+
+The following diagram illustrates how HAER orchestrates the web dashboard, background workers, databases, and the external Home Assistant API:
+
+```mermaid
+graph TD
+    User[User Browser] <-->|Django Views & UI| Web[Django Web Service]
+    Web <-->|Saves Configurations| DB[(PostgreSQL Database)]
+    CeleryBeat[Celery Beat Scheduler] -->|Triggers Polling Tasks| RabbitMQ{RabbitMQ Message Broker}
+    RabbitMQ -->|Dispatches Tasks| CeleryWorker[Celery Worker]
+    
+    subgraph Data Acquisition & ML
+        CeleryWorker -->|Queries State & Captures Snapshots| HA[Home Assistant API]
+        CeleryWorker -->|Runs Facial Analysis| DeepFace[DeepFace ML Model]
+    end
+    
+    CeleryWorker -->|Saves Snapshots & Sensor States| DB
+    Web -->|Downloads Logs| CSV[CSV Data Export]
+```
+
+---
+
+## 🛠️ Technology Stack
+
+*   **Backend Framework**: [Django 6.0](https://www.djangoproject.com/)
+*   **Task Queue & Scheduling**: [Celery 5.6](https://docs.celeryq.dev/) & [django-celery-beat](https://github.com/celery/django-celery-beat)
+*   **Message Broker**: [RabbitMQ 3.x](https://www.rabbitmq.com/)
+*   **Database**: [PostgreSQL 15](https://www.postgresql.org/)
+*   **Computer Vision**: [OpenCV Headless](https://github.com/opencv/opencv-python)
+*   **Deep Learning**: [PyTorch 2.12](https://pytorch.org/) & [DeepFace](https://github.com/serengil/deepface)
+*   **Cryptography**: [Fernet (Cryptography 49.0)](https://cryptography.io/)
+*   **Containerization**: Docker & Docker Compose
+
+---
+
+## ⚙️ Database Schema & Models
+
+HAER maps the research data using a structured relational model:
+
+### `HomeAssistantCredentials`
+Stores the connection coordinates and authentication tokens.
+*   `user`: Django Auth user owner.
+*   `host` / `port`: Coordinates of the Home Assistant instance.
+*   `encrypted_token` (Write-only): The access token encrypted using `cryptography.fernet`. Plaintext tokens are never stored directly.
+
+### `PollCycle`
+Acts as the central timeline heartbeat. Every periodic run generates a new `PollCycle` with a timestamp to group snapshots and entity states together.
+
+### `Entity`
+Defines the Home Assistant entities to track (e.g., `sensor.living_room_temperature`, `light.kitchen_lights`).
+*   `entity_id`: The exact Home Assistant identifier.
+*   `name`: A friendly name for display.
+*   `location`: Physical room or area.
+*   `unit_of_measurement`: Optional unit (e.g. `°C`, `%`).
+
+### `EntityStatus`
+A time-series entry representing the state of an `Entity` at a specific `PollCycle`.
+
+### `Camera`
+Defines registered cameras to query frames from.
+*   `camera_id`: The exact Home Assistant camera entity identifier (e.g., `camera.living_room`).
+
+### `CameraSnapshot`
+Stores the image captured at a specific `PollCycle` alongside its analytical results.
+*   `image`: Path to the saved image in Django's media storage.
+*   `detected_emotion`: The primary emotion classification returned by the model.
+*   `confidence_score`: A normalized value (0.0 to 1.0) indicating the model's prediction confidence.
+
+---
+
+## 🚀 Quick Start & Installation
+
+Ensure you have [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
+
+### 1. Configure the Environment
+Create a `.env` file in the root directory:
+
+```env
+# Django Settings
+SECRET_KEY=your-django-secret-key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database Configuration
+DB_NAME=ha_emotion_research
+DB_USER=admin
+DB_PASSWORD=admin123
+DB_HOST=db
+DB_PORT=5432
+
+# Secret Encryption Key for Fernet
+# Run: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+ENCRYPTION_KEY=your-generated-fernet-key
+
+# RabbitMQ
+RABBIT_USER=guest
+RABBIT_PASSWORD=guest
+
+# Application Superuser (Auto-created on startup)
+APP_USER=admin
+APP_PASS=admin123
+```
+
+### 2. Build and Start Services
+Run the following command to build the Docker containers and start the background services:
+
+```bash
+docker compose up --build -d
+```
+
+This will run five services:
+*   `db`: PostgreSQL database server.
+*   `rabbitmq`: The message broker queue.
+*   `web`: The Django web portal (accessible at `http://localhost:8000`).
+*   `celery_worker`: Background process handler carrying out API requests and deep learning tasks.
+*   `celery_beat`: Cron scheduler dispatching tasks every 30 seconds.
+
+### 3. Create a Superuser (Optional/Manual)
+The `web` container automatically creates a superuser on startup using the `APP_USER` and `APP_PASS` values defined in your `.env`. If you wish to manually create additional admin accounts, run:
+
+```bash
+docker compose exec web python src/manage.py createsuperuser
+```
+
+### 4. Verify the App Status
+Access `http://localhost:8000` in your web browser, log in using your superuser credentials, navigate to the **Run** tab, and execute the connection diagnostic suite to verify API credentials, sensor bindings, and model availability.
+
+---
+
+## 🛠️ Troubleshooting
+
+### Stuck Web Container (Permission Denied)
+If docker-compose fails to restart the `web` container because of a hung system state showing `cannot stop container: ... permission denied`, run:
+```bash
+sudo systemctl restart docker
+```
+*Alternatively, you can manually find the process PID and kill it:*
+```bash
+docker inspect --format '{{.State.Pid}}' ha_emotion_research-web-1
+sudo kill -9 <PID>
+```
+
+### Headless Environments & GUI Errors
+In Linux container environments, using the standard `opencv-python` package causes crashes (e.g. `ImportError: libxcb.so.1: cannot open shared object file: No such file or directory`) due to missing X11/Qt libraries. HAER solves this out-of-the-box by using `opencv-python-headless` in `requirements.txt`.

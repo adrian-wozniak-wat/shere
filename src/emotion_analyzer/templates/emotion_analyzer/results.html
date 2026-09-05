@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            padding: 10px 20px;
+            color: white;
+        }
+        .navbar-left a {
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .navbar-left a:hover {
+            background-color: #575757;
+        }
+        .navbar-left a.active {
+            background-color: #575757;
+            font-weight: bold;
+        }
+        .navbar-right a {
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            background-color: #dc3545; /* Red color for logout */
+            transition: background-color 0.3s;
+        }
+        .navbar-right a:hover {
+            background-color: #c82333;
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 50px auto;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .card h1 {
+            margin-top: 0;
+            color: #333;
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+        .card p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-decoration: none;
+        }
+        .btn-download:hover {
+            background: linear-gradient(135deg, #1e90ff 0%, #003d82 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .btn-download:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-download svg {
+            width: 20px;
+            height: 20px;
+        }
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            padding: 14px 20px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover td {
+            background-color: #fcfcfc;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .pagination .step-links {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .pagination .page-link {
+            text-decoration: none;
+            color: #007bff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            font-weight: bold;
+        }
+        .pagination .page-link:hover {
+            background-color: #f1f3f5;
+        }
+        .pagination .current {
+            color: #666;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="{% url 'configuration_page' %}">Configuration</a>
+            <a href="{% url 'run_page' %}">Run</a>
+            <a href="{% url 'results_page' %}" class="active">Results</a>
+        </div>
+        <div class="navbar-right">
+            <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="card" style="margin-bottom: 30px;">
+            <h1>Analysis Results</h1>
+            <p>Export the compiled records of analyzed facial expressions and emotion data to a standard CSV file.</p>
+            <a href="?download=csv" class="btn-download" id="download-csv-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Download CSV
+            </a>
+        </div>
+
+        <div class="table-container">
+            <table style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        {% for camera in cameras %}
+                            <th>{{ camera.name|default:camera.camera_id }} Emotion</th>
+                            <th>{{ camera.name|default:camera.camera_id }} Confidence</th>
+                        {% endfor %}
+                        {% for entity in entities %}
+                            <th>{{ entity.name|default:entity.entity_id }} State</th>
+                            <th>{{ entity.name|default:entity.entity_id }} Unit</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td style="white-space: nowrap;"><code>{{ row.timestamp|date:"Y-m-d H:i:s" }}</code></td>
+                            {% for cam in row.camera_data %}
+                                <td>{{ cam.detected_emotion|default:"—" }}</td>
+                                <td>{{ cam.confidence_score|default:"—" }}</td>
+                            {% endfor %}
+                            {% for ent in row.entity_data %}
+                                <td>{{ ent.state_value|default:"—" }}</td>
+                                <td>{{ ent.unit_of_measurement|default:"—" }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="{{ total_columns }}" style="text-align: center; color: #888; padding: 30px;">No poll cycle results available yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="page-link">&laquo; First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+                    {% endif %}
+
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

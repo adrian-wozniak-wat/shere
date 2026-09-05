@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - HA Emotion Research</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            padding: 10px 20px;
+            color: white;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+            text-decoration: none;
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .card h1 {
+            margin-top: 0;
+            color: #333;
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+        .card p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+        .btn-login {
+            background: #007bff;
+            color: white;
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        .btn-login:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .btn-login:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .error-container {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .error-msg {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .error-msg:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <span class="navbar-brand">Emotion Research</span>
+    </nav>
+
+    <div class="content">
+        <div class="card">
+            <h1>Login</h1>
+            <p>Please enter your credentials to access the system.</p>
+
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}">
+
+                {% if form.errors %}
+                <div class="error-container">
+                    {% for error in form.non_field_errors %}
+                    <div class="error-msg">{{ error }}</div>
+                    {% endfor %}
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                        <div class="error-msg">{{ field.label }}: {{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="id_username">Username</label>
+                    <input type="text" name="username" autofocus required id="id_username" placeholder="Username">
+                </div>
+
+                <div class="form-group">
+                    <label for="id_password">Password</label>
+                    <input type="password" name="password" required id="id_password" placeholder="Password">
+                </div>
+
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: web
+    volumes:
+      - .:/app
+    network_mode: "host"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - rabbitmq
+
+  celery_worker:
+    build: .
+    command: worker
+    volumes:
+      - .:/app
+    network_mode: "host"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - rabbitmq
+      - web
+
+  celery_beat:
+    build: .
+    command: beat  
+    volumes:
+      - .:/app
+    network_mode: "host"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - rabbitmq
+      - web
+  db:
+    image: postgres:15
+    restart: always
+    network_mode: "host"
+    environment:
+      - POSTGRES_USER=${DB_USER:-admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-admin123}
+      - POSTGRES_DB=ha_emotion_research
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    network_mode: "host"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBIT_USER:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  rabbitmq_logs:

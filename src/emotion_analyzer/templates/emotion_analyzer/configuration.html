@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - HA Emotion Research</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            padding: 10px 20px;
+            color: white;
+        }
+        .navbar-left a {
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .navbar-left a:hover {
+            background-color: #575757;
+        }
+        .navbar-left a.active {
+            background-color: #575757;
+            font-weight: bold;
+        }
+        .navbar-right a {
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            background-color: #dc3545; /* Red color for logout */
+            transition: background-color 0.3s;
+        }
+        .navbar-right a:hover {
+            background-color: #c82333;
+        }
+        .content {
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 25px;
+        }
+        
+        /* Tabs Styling */
+        .tab-container {
+            margin-top: 20px;
+        }
+        .tab-header {
+            display: flex;
+            border-bottom: 2px solid #ccc;
+            margin-bottom: 25px;
+            gap: 5px;
+        }
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .tab-button:hover {
+            color: #007bff;
+        }
+        .tab-button.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        tr:hover {
+            background-color: #fafafa;
+        }
+        
+        /* Form controls inside table */
+        table input[type="text"], table input[type="password"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        table input[type="text"]:focus, table input[type="password"]:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+        }
+
+        /* Buttons Styling */
+        .btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .action-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Cards for Add forms */
+        .form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-top: 25px;
+            border: 1px solid #eef0f2;
+        }
+        .form-card h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-group input {
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        .form-group input:focus {
+            border-color: #007bff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        
+        /* Error Container */
+        .error-container {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .error-msg {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="{% url 'configuration_page' %}" class="active">Configuration</a>
+            <a href="{% url 'run_page' %}">Run</a>
+            <a href="{% url 'results_page' %}">Results</a>
+        </div>
+        <div class="navbar-right">
+            <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <h1>Configuration Page</h1>
+        <p>Manage system configurations, entities, and devices.</p>
+
+        <div class="tab-container">
+            <div class="tab-header">
+                <button class="tab-button {% if active_tab == 'credentials' %}active{% endif %}" onclick="switchTab('credentials')">Home Assistant Credentials</button>
+                <button class="tab-button {% if active_tab == 'entities' %}active{% endif %}" onclick="switchTab('entities')">Entities</button>
+                <button class="tab-button {% if active_tab == 'cameras' %}active{% endif %}" onclick="switchTab('cameras')">Cameras</button>
+            </div>
+
+            <!-- Tab 1: Home Assistant Credentials -->
+            <div id="tab-credentials" class="tab-content {% if active_tab == 'credentials' %}active{% endif %}">
+                {% if active_tab == 'credentials' and credential_form.errors %}
+                <div class="error-container">
+                    {% for field in credential_form %}
+                        {% for error in field.errors %}
+                        <div class="error-msg"><strong>{{ field.label }}:</strong> {{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in credential_form.non_field_errors %}
+                    <div class="error-msg">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Host</th>
+                            <th>Port</th>
+                            <th>Token</th>
+                            <th style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cred in credentials %}
+                            {% if edit_credential_id == cred.id %}
+                                <!-- Edit Mode Row -->
+                                <form id="edit-cred-form-{{ cred.id }}" method="post" action="{% url 'configuration_page' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="edit_credential">
+                                    <input type="hidden" name="pk" value="{{ cred.id }}">
+                                </form>
+                                <tr>
+                                    <td>
+                                        <input type="text" name="username" value="{{ credential_form.username.value|default:cred.username }}" required form="edit-cred-form-{{ cred.id }}">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="host" value="{{ credential_form.host.value|default:cred.host }}" required form="edit-cred-form-{{ cred.id }}">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="port" value="{{ credential_form.port.value|default:cred.port }}" required form="edit-cred-form-{{ cred.id }}">
+                                    </td>
+                                    <td>
+                                        <input type="password" name="token" placeholder="Leave blank to keep current" form="edit-cred-form-{{ cred.id }}">
+                                    </td>
+                                    <td>
+                                        <div class="action-group">
+                                            <button type="submit" form="edit-cred-form-{{ cred.id }}" class="btn btn-sm btn-success">Save</button>
+                                            <a href="?tab=credentials" class="btn btn-sm btn-secondary">Cancel</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <!-- Read Only Row -->
+                                <tr>
+                                    <td>{{ cred.username }}</td>
+                                    <td><code>{{ cred.host }}</code></td>
+                                    <td><code>{{ cred.port }}</code></td>
+                                    <td><span style="color:#aaa; font-style:italic;">•••••••• (encrypted)</span></td>
+                                    <td>
+                                        <div class="action-group">
+                                            <a href="?tab=credentials&edit_credential={{ cred.id }}" class="btn btn-sm btn-secondary">Edit</a>
+                                            <form method="post" action="{% url 'configuration_page' %}" onsubmit="return confirm('Are you sure you want to delete this credential?');" style="display:inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="delete_credential">
+                                                <input type="hidden" name="pk" value="{{ cred.id }}">
+                                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #888;">No Home Assistant credentials configured yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Add New Credential Form Card -->
+                {% if not credentials %}
+                <div class="form-card">
+                    <h3>Add New Home Assistant Credentials</h3>
+                    <form method="post" action="{% url 'configuration_page' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_credential">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="id_add_username">Username</label>
+                                <input type="text" name="username" id="id_add_username" required placeholder="Enter HA username">
+                            </div>
+                            <div class="form-group">
+                                <label for="id_add_host">Host</label>
+                                <input type="text" name="host" id="id_add_host" required placeholder="localhost" value="localhost">
+                            </div>
+                            <div class="form-group">
+                                <label for="id_add_port">Port</label>
+                                <input type="number" name="port" id="id_add_port" required placeholder="8123" value="8123">
+                            </div>
+                            <div class="form-group">
+                                <label for="id_add_token">Access Token</label>
+                                <input type="password" name="token" id="id_add_token" required placeholder="Enter HA access token">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Credentials</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Tab 2: Entities -->
+            <div id="tab-entities" class="tab-content {% if active_tab == 'entities' %}active{% endif %}">
+                {% if active_tab == 'entities' and entity_form.errors %}
+                <div class="error-container">
+                    {% for field in entity_form %}
+                        {% for error in field.errors %}
+                        <div class="error-msg"><strong>{{ field.label }}:</strong> {{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in entity_form.non_field_errors %}
+                    <div class="error-msg">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entity ID</th>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th>Unit of Measurement</th>
+                            <th style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entity in entities %}
+                            {% if edit_entity_id == entity.id %}
+                                <!-- Edit Mode Row -->
+                                <form id="edit-entity-form-{{ entity.id }}" method="post" action="{% url 'configuration_page' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="edit_entity">
+                                    <input type="hidden" name="pk" value="{{ entity.id }}">
+                                </form>
+                                <tr>
+                                    <td>
+                                        <input type="text" name="entity_id" value="{{ entity_form.entity_id.value|default:entity.entity_id }}" required form="edit-entity-form-{{ entity.id }}">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="name" value="{{ entity_form.name.value|default:entity.name }}" form="edit-entity-form-{{ entity.id }}" placeholder="e.g. Temp Sensor (optional)">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="location" value="{{ entity_form.location.value|default:entity.location }}" required form="edit-entity-form-{{ entity.id }}">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="unit_of_measurement" value="{{ entity_form.unit_of_measurement.value|default:entity.unit_of_measurement|default:'' }}" form="edit-entity-form-{{ entity.id }}" placeholder="e.g. °C, % (optional)">
+                                    </td>
+                                    <td>
+                                        <div class="action-group">
+                                            <button type="submit" form="edit-entity-form-{{ entity.id }}" class="btn btn-sm btn-success">Save</button>
+                                            <a href="?tab=entities" class="btn btn-sm btn-secondary">Cancel</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <!-- Read Only Row -->
+                                <tr>
+                                    <td><code>{{ entity.entity_id }}</code></td>
+                                    <td>{{ entity.name|default:"—" }}</td>
+                                    <td>{{ entity.location }}</td>
+                                    <td>{{ entity.unit_of_measurement|default:"—" }}</td>
+                                    <td>
+                                        <div class="action-group">
+                                            <a href="?tab=entities&edit_entity={{ entity.id }}" class="btn btn-sm btn-secondary">Edit</a>
+                                            <form method="post" action="{% url 'configuration_page' %}" onsubmit="return confirm('Are you sure you want to delete this entity?');" style="display:inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="delete_entity">
+                                                <input type="hidden" name="pk" value="{{ entity.id }}">
+                                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #888;">No Home Assistant entities configured yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Add New Entity Form Card -->
+                <div class="form-card">
+                    <h3>Add New Entity</h3>
+                    <form method="post" action="{% url 'configuration_page' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_entity">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="id_add_entity_id">Entity ID</label>
+                                <input type="text" name="entity_id" id="id_add_entity_id" required placeholder="sensor.room_temperature">
+                            </div>
+                            <div class="form-group">
+                                <label for="id_add_entity_name">Name (Optional)</label>
+                                <input type="text" name="name" id="id_add_entity_name" placeholder="e.g. Temperature Sensor">
+                            </div>
+                            <div class="form-group">
+                                <label for="id_add_entity_location">Location</label>
+                                <input type="text" name="location" id="id_add_entity_location" required placeholder="e.g. Living Room">
+                            </div>
+                            <div class="form-group">
+                                <label for="id_add_unit_of_measurement">Unit of Measurement (Optional)</label>
+                                <input type="text" name="unit_of_measurement" id="id_add_unit_of_measurement" placeholder="e.g. °C, %">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Entity</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tab 3: Cameras -->
+            <div id="tab-cameras" class="tab-content {% if active_tab == 'cameras' %}active{% endif %}">
+                {% if active_tab == 'cameras' and camera_form.errors %}
+                <div class="error-container">
+                    {% for field in camera_form %}
+                        {% for error in field.errors %}
+                        <div class="error-msg"><strong>{{ field.label }}:</strong> {{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in camera_form.non_field_errors %}
+                    <div class="error-msg">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Camera ID</th>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for camera in cameras %}
+                            {% if edit_camera_id == camera.id %}
+                                <!-- Edit Mode Row -->
+                                <form id="edit-camera-form-{{ camera.id }}" method="post" action="{% url 'configuration_page' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="edit_camera">
+                                    <input type="hidden" name="pk" value="{{ camera.id }}">
+                                </form>
+                                <tr>
+                                    <td>
+                                        <input type="text" name="camera_id" value="{{ camera_form.camera_id.value|default:camera.camera_id }}" required form="edit-camera-form-{{ camera.id }}">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="name" value="{{ camera_form.name.value|default:camera.name }}" form="edit-camera-form-{{ camera.id }}" placeholder="e.g. Front Door Camera (optional)">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="location" value="{{ camera_form.location.value|default:camera.location }}" required form="edit-camera-form-{{ camera.id }}">
+                                    </td>
+                                    <td>
+                                        <div class="action-group">
+                                            <button type="submit" form="edit-camera-form-{{ camera.id }}" class="btn btn-sm btn-success">Save</button>
+                                            <a href="?tab=cameras" class="btn btn-sm btn-secondary">Cancel</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <!-- Read Only Row -->
+                                <tr>
+                                    <td><code>{{ camera.camera_id }}</code></td>
+                                    <td>{{ camera.name|default:"—" }}</td>
+                                    <td>{{ camera.location }}</td>
+                                    <td>
+                                        <div class="action-group">
+                                            <a href="?tab=cameras&edit_camera={{ camera.id }}" class="btn btn-sm btn-secondary">Edit</a>
+                                            <form method="post" action="{% url 'configuration_page' %}" onsubmit="return confirm('Are you sure you want to delete this camera?');" style="display:inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="delete_camera">
+                                                <input type="hidden" name="pk" value="{{ camera.id }}">
+                                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #888;">No cameras configured yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Add New Camera Form Card -->
+                <div class="form-card">
+                    <h3>Add New Camera</h3>
+                    <form method="post" action="{% url 'configuration_page' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_camera">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="id_add_camera_id">Camera ID</label>
+                                <input type="text" name="camera_id" id="id_add_camera_id" required placeholder="camera.living_room_cam">
+                            </div>
+                            <div class="form-group">
+                                <label for="id_add_camera_name">Name (Optional)</label>
+                                <input type="text" name="name" id="id_add_camera_name" placeholder="e.g. Front Door Camera">
+                            </div>
+                            <div class="form-group">
+                                <label for="id_add_camera_location">Location</label>
+                                <input type="text" name="location" id="id_add_camera_location" required placeholder="e.g. Living Room Cam">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Camera</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide all tab content elements
+            document.querySelectorAll('.tab-content').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            // Deactivate all tab header buttons
+            document.querySelectorAll('.tab-button').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            
+            // Show selected tab content element
+            var contentEl = document.getElementById('tab-' + tabName);
+            if (contentEl) {
+                contentEl.classList.add('active');
+            }
+            // Activate selected tab header button
+            var eventBtn = document.querySelector('button[onclick="switchTab(\'' + tabName + '\')"]');
+            if (eventBtn) {
+                eventBtn.classList.add('active');
+            }
+            
+            // Update URL search parameters without page reload
+            var url = new URL(window.location);
+            url.searchParams.set('tab', tabName);
+            // Clear edit params on tab switch
+            url.searchParams.delete('edit_credential');
+            url.searchParams.delete('edit_entity');
+            url.searchParams.delete('edit_camera');
+            window.history.pushState({}, '', url);
+        }
+    </script>
+</body>
+</html>
