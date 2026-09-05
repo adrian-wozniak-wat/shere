@@ -29,7 +29,7 @@ services:
       db:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
 
   celery_worker:
     <<: *common-service
@@ -76,6 +76,12 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBIT_USER:-guest}
       - RABBITMQ_DEFAULT_PASS=${RABBIT_PASSWORD:-guest}
+      - RABBITMQ_NODENAME=rabbit@localhost
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - rabbitmq_logs:/var/log/rabbitmq
