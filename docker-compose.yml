@@ -26,24 +26,32 @@ services:
     <<: *common-service
     command: web
     depends_on:
-      - db
-      - rabbitmq
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
 
   celery_worker:
     <<: *common-service
     command: worker
     depends_on:
-      - db
-      - rabbitmq
-      - web
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      web:
+        condition: service_started
 
   celery_beat:
     <<: *common-service
     command: beat  
     depends_on:
-      - db
-      - rabbitmq
-      - web
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      web:
+        condition: service_started
 
   db:
     image: postgres:15
@@ -53,6 +61,11 @@ services:
       - POSTGRES_USER=${DB_USER:-admin}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-admin123}
       - POSTGRES_DB=ha_emotion_research
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ha_emotion_research"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

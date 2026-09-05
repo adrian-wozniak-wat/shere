@@ -8,9 +8,32 @@ echo "Starting entrypoint script..."
 # Export PYTHONPATH to include src directory so python/celery can locate modules/config
 export PYTHONPATH=src
 
+wait_for_db() {
+    echo "Waiting for PostgreSQL database to be ready..."
+    python -c "
+import time, os, psycopg2
+db_user = os.getenv('DB_USER', 'admin')
+db_pass = os.getenv('DB_PASSWORD', 'admin123')
+db_host = os.getenv('DB_HOST', '127.0.0.1')
+for i in range(30):
+    try:
+        conn = psycopg2.connect(dbname='ha_emotion_research', user=db_user, password=db_pass, host=db_host)
+        conn.close()
+        print('Database connection established successfully.')
+        break
+    except Exception as e:
+        print(f'Waiting for database ({e})...')
+        time.sleep(2)
+else:
+    print('Database connection timed out.')
+    exit(1)
+"
+}
+
 # Check the first argument passed to the script
 case "$1" in
     web)
+        wait_for_db
         echo "Running Django Database Migrations..."
         python src/manage.py migrate --noinput
         echo "Creating superuser if needed..."
@@ -33,10 +56,12 @@ else:
         exec python src/manage.py runserver 0.0.0.0:8000
         ;;
     worker)
+        wait_for_db
         echo "Starting Celery Worker..."
         exec celery -A config worker --loglevel=info
         ;;
     beat)
+        wait_for_db
         echo "Starting Celery Beat..."
         exec celery -A config beat --loglevel=info
         ;;
