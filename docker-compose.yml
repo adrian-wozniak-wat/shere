@@ -41,6 +41,14 @@ services:
         condition: service_healthy
       web:
         condition: service_started
+    # Uncomment to enable GPU access
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
 
   celery_beat:
     <<: *common-service
