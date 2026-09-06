@@ -58,7 +58,7 @@ else:
     worker)
         wait_for_db
         echo "Starting Celery Worker..."
-        exec celery -A config worker --loglevel=info
+        exec celery -A config worker --loglevel=info --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
         ;;
     beat)
         wait_for_db

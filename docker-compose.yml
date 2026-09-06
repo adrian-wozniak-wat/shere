@@ -9,6 +9,8 @@ x-common-env: &common-env
   APP_USER: ${APP_USER:-admin}
   APP_PASS: ${APP_PASS:-admin123}
   EMOTION_MODEL_NAME: ${EMOTION_MODEL_NAME:-dima806/facial_emotions_image_detection}
+  CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
+  PYTORCH_CUDA_ALLOC_CONF: ${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}
 
 x-common-service: &common-service
   image: ${DOCKER_IMAGE:-ghcr.io/adrian-wozniak-wat/shere:latest}
@@ -38,14 +40,14 @@ services:
         condition: service_healthy
       web:
         condition: service_started
-    # Uncomment to enable GPU access for PyTorch / CUDA models
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+# Uncomment to enable GPU access for PyTorch / CUDA models
+#   deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: all
+#              capabilities: [gpu]
 
   celery_beat:
     <<: *common-service
