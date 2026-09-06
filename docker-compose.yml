@@ -15,9 +15,6 @@ x-common-service: &common-service
   volumes:
     - .:/app
   network_mode: "host"
-  env_file:
-    - path: .env
-      required: false
   environment:
     <<: *common-env
 
@@ -41,7 +38,7 @@ services:
         condition: service_healthy
       web:
         condition: service_started
-    # Uncomment to enable GPU access
+    # Uncomment to enable GPU access for PyTorch / CUDA models
     # deploy:
     #   resources:
     #     reservations:
