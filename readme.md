@@ -86,6 +86,22 @@ Stores the image captured at a specific `PollCycle` alongside its analytical res
 
 ---
 
+## 💻 System Requirements
+
+Before deploying SHERE, ensure your host environment meets the following minimum requirements:
+
+*   **Software**: [Docker](https://www.docker.com/) with [Docker Compose](https://docs.docker.com/compose/)
+*   **Architecture**: x86_64 / x64 CPU
+*   **Processor**: Dual-core CPU (2 Cores minimum)
+*   **Memory**: 4 GB RAM minimum
+*   **Network & Connectivity**: Accessible Home Assistant instance with exposed REST API (and a valid Long-Lived Access Token)
+*   **Optional GPU Acceleration**: An NVIDIA graphics card (e.g. RTX series) can be passed through to accelerate deep learning model inference. To enable GPU support:
+    1. Install proper NVIDIA host drivers.
+    2. Install `nvidia-container-toolkit` on the host machine.
+    3. Uncomment the NVIDIA GPU `deploy` block in `docker-compose.yml` under the `celery_worker` service.
+
+---
+
 ## 🚀 Quick Start & Installation
 
 Ensure you have [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
