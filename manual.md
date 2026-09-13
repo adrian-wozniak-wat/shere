@@ -91,7 +91,11 @@ Access `http://localhost:8000` in your web browser, log in using your superuser 
 
 ## 🖥️ GUI Management
 
-By default, the SHERE web interface is accessible at the IP address of the host machine on port **8000** (e.g., `http://<HOST_IP>:8000` or `http://localhost:8000`).
+By default, the SHERE web interface is accessible at the IP address of the host machine on port **8000** (e.g., `http://<HOST_IP>:8000` or `http://localhost:8000`). 
+
+Log in using the default superuser credentials:
+* **Username**: `admin`
+* **Password**: `admin123`
 
 The web dashboard allows users to manage Home Assistant connection credentials, configure tracked entities and cameras, perform diagnostic dry-runs, control polling jobs, and view or export collected research logs.
 
