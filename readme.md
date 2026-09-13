@@ -1,6 +1,6 @@
-# Home Assistant Emotion Research (HAER)
+# SHERE - Smart Home Emotion Research Engine
 
-Home Assistant Emotion Research (HAER) is an advanced Django-based research framework designed to study the correlations between user emotional states and domestic environments. By integrating directly with Home Assistant (HA), HAER captures real-time smart home device states (such as lighting levels, room temperatures, and media player activity) alongside user facial emotions analyzed from home cameras.
+SHERE (Smart Home Emotion Research Engine) is an advanced Django-based research framework designed to study the correlations between user emotional states and domestic environments. By integrating directly with Home Assistant (HA), SHERE captures real-time smart home device states (such as lighting levels, room temperatures, and media player activity) alongside user facial emotions analyzed from home cameras.
 
 This data provides researchers and smart home enthusiasts with empirical logs to design and evaluate emotional-aware ambient intelligence and adaptive automation.
 
@@ -19,7 +19,7 @@ This data provides researchers and smart home enthusiasts with empirical logs to
 
 ## 🏗️ System Architecture
 
-The following diagram illustrates how HAER orchestrates the web dashboard, background workers, databases, and the external Home Assistant API:
+The following diagram illustrates how SHERE orchestrates the web dashboard, background workers, databases, and the external Home Assistant API:
 
 ```mermaid
 graph TD
@@ -34,7 +34,6 @@ graph TD
     end
     
     CeleryWorker -->|Saves Snapshots & Sensor States| DB
-    Web -->|Downloads Logs| CSV[CSV Data Export]
 ```
 
 ---
@@ -54,7 +53,7 @@ graph TD
 
 ## ⚙️ Database Schema & Models
 
-HAER maps the research data using a structured relational model:
+SHERE maps the research data using a structured relational model:
 
 ### `HomeAssistantCredentials`
 Stores the connection coordinates and authentication tokens.
@@ -91,73 +90,79 @@ Stores the image captured at a specific `PollCycle` alongside its analytical res
 
 Ensure you have [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
 
-### 1. Configure the Environment
-Create a `.env` file in the root directory:
-
-```env
-# Django Settings
-SECRET_KEY=your-django-secret-key
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-# Database Configuration
-DB_NAME=ha_emotion_research
-DB_USER=admin
-DB_PASSWORD=admin123
-DB_HOST=db
-DB_PORT=5432
-
-# Secret Encryption Key for Fernet
-# Run: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-ENCRYPTION_KEY=your-generated-fernet-key
-
-# RabbitMQ
-RABBIT_USER=guest
-RABBIT_PASSWORD=guest
-
-# Application Superuser (Auto-created on startup)
-APP_USER=admin
-APP_PASS=admin123
-```
-
-### 2. Build and Start Services
-Run the following command to build the Docker containers and start the background services:
+### 1. Start Services
+SHERE uses a pre-built Docker image hosted on GitHub Container Registry (`ghcr.io/adrian-wozniak-wat/shere:latest`). Simply run:
 
 ```bash
-docker compose up --build -d
+docker compose up -d
 ```
 
-This will run five services:
+This will automatically pull the image and run five background services:
 *   `db`: PostgreSQL database server.
 *   `rabbitmq`: The message broker queue.
 *   `web`: The Django web portal (accessible at `http://localhost:8000`).
 *   `celery_worker`: Background process handler carrying out API requests and deep learning tasks.
 *   `celery_beat`: Cron scheduler dispatching tasks every 30 seconds.
 
-### 3. Create a Superuser (Optional/Manual)
-The `web` container automatically creates a superuser on startup using the `APP_USER` and `APP_PASS` values defined in your `.env`. If you wish to manually create additional admin accounts, run:
+> [!IMPORTANT]
+> **Security Notice**: Creating a `.env` file is optional because fallback default values are built-in for zero-configuration startup. However, **for security reasons, it is strongly recommended to set custom environment variables locally** in production or non-isolated deployments.
+
+#### Environment Variables
+
+The following environment variables can be customized:
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `DB_USER` | PostgreSQL database user | `admin` |
+| `DB_PASSWORD` | PostgreSQL database password | `admin123` |
+| `DB_HOST` | Database host address | `127.0.0.1` |
+| `RABBIT_USER` | RabbitMQ broker username | `guest` |
+| `RABBIT_PASSWORD` | RabbitMQ broker password | `guest` |
+| `ENCRYPTION_KEY` | Symmetric Fernet key for encrypting stored access tokens | Built-in default key |
+| `APP_USER` | Initial Django admin username created on startup | `admin` |
+| `APP_PASS` | Initial Django admin password created on startup | `admin123` |
+| `EMOTION_MODEL_NAME` | Deep learning emotion classification model | `dima806/facial_emotions_image_detection` |
+| `CELERY_WORKER_CONCURRENCY` | Celery worker process concurrency | `2` |
+| `DOCKER_IMAGE` | SHERE container image registry path | `ghcr.io/adrian-wozniak-wat/shere:latest` |
+
+#### Example `.env` File:
+
+```env
+# Database & Broker Credentials
+DB_USER=custom_db_user
+DB_PASSWORD=custom_db_password
+RABBIT_USER=custom_rabbit_user
+RABBIT_PASSWORD=custom_rabbit_password
+
+# Secret Fernet Encryption Key
+# Generate using: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+ENCRYPTION_KEY=your-custom-generated-fernet-key
+
+# Application Superuser Credentials
+APP_USER=custom_admin
+APP_PASS=custom_admin_password
+
+# Optional Performance & Image Settings
+CELERY_WORKER_CONCURRENCY=2
+DOCKER_IMAGE=ghcr.io/adrian-wozniak-wat/shere:latest
+```
+
+### 2. Create a Superuser (Optional/Manual)
+The `web` container automatically creates a superuser on startup using `APP_USER` and `APP_PASS` (defaulting to `admin` / `admin123`). If you wish to manually create additional admin accounts, run:
 
 ```bash
 docker compose exec web python src/manage.py createsuperuser
 ```
 
-### 4. Verify the App Status
+### 3. Verify the App Status
 Access `http://localhost:8000` in your web browser, log in using your superuser credentials, navigate to the **Run** tab, and execute the connection diagnostic suite to verify API credentials, sensor bindings, and model availability.
 
 ---
 
-## 🛠️ Troubleshooting
+## 📧 Scientific Support & Contact
 
-### Stuck Web Container (Permission Denied)
-If docker-compose fails to restart the `web` container because of a hung system state showing `cannot stop container: ... permission denied`, run:
-```bash
-sudo systemctl restart docker
-```
-*Alternatively, you can manually find the process PID and kill it:*
-```bash
-docker inspect --format '{{.State.Pid}}' ha_emotion_research-web-1
-sudo kill -9 <PID>
-```
+The author can provide full support with software setup, deployment, and data collection, especially when it comes to scientific and research purposes.
 
-### Headless Environments & GUI Errors
-In Linux container environments, using the standard `opencv-python` package causes crashes (e.g. `ImportError: libxcb.so.1: cannot open shared object file: No such file or directory`) due to missing X11/Qt libraries. HAER solves this out-of-the-box by using `opencv-python-headless` in `requirements.txt`.
+Additionally, for Home Assistant installations that are exposed to the internet, the author can host the application on remote infrastructure and deliver the compiled research results.
+
+* **Contact Email**: [adrian.wozniak@wat.edu.pl](mailto:adrian.wozniak@wat.edu.pl)
