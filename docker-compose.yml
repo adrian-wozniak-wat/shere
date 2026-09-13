@@ -13,6 +13,7 @@ x-common-env: &common-env
   PYTORCH_CUDA_ALLOC_CONF: ${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}
 
 x-common-service: &common-service
+  build: .
   image: ${DOCKER_IMAGE:-ghcr.io/adrian-wozniak-wat/shere:latest}
   volumes:
     - .:/app
