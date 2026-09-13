@@ -9,7 +9,7 @@ This data provides researchers and smart home enthusiasts with empirical logs to
 ## 🌟 Key Features
 
 *   **🔒 Secure Credentials Store**: Sensitive Long-Lived Access Tokens (LLAT) for Home Assistant are encrypted using symmetric Fernet encryption (`cryptography`) before being persisted in the database.
-*   **🧠 Deep Learning Emotion Detection**: Leverages **DeepFace** (backed by PyTorch and headless OpenCV) to perform high-fidelity facial analysis, recognizing dominant emotions (Happy, Sad, Angry, Surprised, Fear, Disgust, Neutral) and confidence scores.
+*   **🧠 Deep Learning Emotion Detection**: Leverages **HuggingFace Transformers** (`dima806/facial_emotions_image_detection`) and **YOLOv8** (`arnabdhar/YOLOv8-Face-Detection`) to perform high-fidelity face detection and emotion classification (Happy, Sad, Angry, Surprised, Fear, Disgust, Neutral) with confidence scores.
 *   **⏱️ Distributed Periodic Polling**: Automated heartbeat checks driven by **Celery** and **Celery Beat** run every 30 seconds to query device states and camera frames in parallel, preventing UI blocking.
 *   **📊 Unified Data Analysis Matrix**: A comprehensive dashboard showing historical poll cycles aligning camera snapshots with concurrent smart entity states.
 *   **📥 CSV Exporter**: Export the unified database logs with a single click to perform data modeling, statistical correlation, or train predictive models.
@@ -30,7 +30,7 @@ graph TD
     
     subgraph Data Acquisition & ML
         CeleryWorker -->|Queries State & Captures Snapshots| HA[Home Assistant API]
-        CeleryWorker -->|Runs Facial Analysis| DeepFace[DeepFace ML Model]
+        CeleryWorker -->|Runs Facial Analysis| ML[YOLOv8 + Transformers Model]
     end
     
     CeleryWorker -->|Saves Snapshots & Sensor States| DB
@@ -40,13 +40,13 @@ graph TD
 
 ## 🛠️ Technology Stack
 
-*   **Backend Framework**: [Django 6.0](https://www.djangoproject.com/)
-*   **Task Queue & Scheduling**: [Celery 5.6](https://docs.celeryq.dev/) & [django-celery-beat](https://github.com/celery/django-celery-beat)
-*   **Message Broker**: [RabbitMQ 3.x](https://www.rabbitmq.com/)
+*   **Backend Framework**: [Django](https://www.djangoproject.com/)
+*   **Task Queue & Scheduling**: [Celery](https://docs.celeryq.dev/) & [django-celery-beat](https://github.com/celery/django-celery-beat)
+*   **Message Broker**: [RabbitMQ](https://www.rabbitmq.com/)
 *   **Database**: [PostgreSQL 15](https://www.postgresql.org/)
 *   **Computer Vision**: [OpenCV Headless](https://github.com/opencv/opencv-python)
-*   **Deep Learning**: [PyTorch 2.12](https://pytorch.org/) & [DeepFace](https://github.com/serengil/deepface)
-*   **Cryptography**: [Fernet (Cryptography 49.0)](https://cryptography.io/)
+*   **Deep Learning**: [PyTorch](https://pytorch.org/), [HuggingFace Transformers](https://huggingface.co/transformers/), & [YOLOv8](https://github.com/ultralytics/ultralytics)
+*   **Cryptography**: [Fernet (Cryptography)](https://cryptography.io/)
 *   **Containerization**: Docker & Docker Compose
 
 ---
