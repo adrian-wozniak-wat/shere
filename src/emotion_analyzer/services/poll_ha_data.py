@@ -80,6 +80,7 @@ def poll_ha_data():
             emotion, confidence, face_ms, emotion_ms = None, None, None, None
             if image_path:
                 emotion, confidence, face_ms, emotion_ms = analyze_emotion(image_path)
+                logger.info(f"Camera '{camera.camera_id}' ({camera.name or camera.location}): Detected emotion '{emotion}' with confidence score: {confidence}")
             
             if face_ms is not None:
                 total_face_ms += face_ms

@@ -1,5 +1,7 @@
-import sys
+import logging
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 def get_entity_data(ha_url, token, entity_id):
@@ -27,5 +29,5 @@ def get_entity_data(ha_url, token, entity_id):
         return state, attributes
 
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching data for {entity_id}: {e}", file=sys.stderr)
+        logger.error(f"Error fetching data for {entity_id}: {e}")
         return None, None

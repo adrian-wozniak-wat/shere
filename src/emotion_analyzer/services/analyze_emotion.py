@@ -2,6 +2,9 @@ import os
 import cv2
 import requests
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def save_camera_snapshot(ha_url, camera_entity, files_directory, timestamp, token):
@@ -47,16 +50,16 @@ def save_camera_snapshot(ha_url, camera_entity, files_directory, timestamp, toke
         frame = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
 
         if frame is None:
-            print("Error: Could not decode the image from Home Assistant.")
+            logger.error("Could not decode the image from Home Assistant.")
             return None
 
         # Save the image to the specified directory
         cv2.imwrite(filename, frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
-        print(f"Successfully saved snapshot to {filename}")
+        logger.info(f"Successfully saved snapshot to {filename}")
         return filename
 
     except Exception as e:
-        print(f"An error occurred while saving snapshot: {e}")
+        logger.error(f"An error occurred while saving snapshot: {e}")
         return None
 
 
@@ -69,7 +72,7 @@ def get_emotion_pipeline():
     if _video_pipe is None:
         from transformers import pipeline
         model_name = os.environ.get('EMOTION_MODEL_NAME', 'dima806/facial_emotions_image_detection')
-        print(f"Initializing emotion pipeline with model: {model_name}")
+        logger.info(f"Initializing emotion pipeline with model: {model_name}")
         _video_pipe = pipeline("image-classification", model=model_name)
     return _video_pipe
 
@@ -80,7 +83,7 @@ def get_face_detector():
         from ultralytics import YOLO
         from huggingface_hub import hf_hub_download
         model_name = os.environ.get('FACE_DETECTOR_MODEL_NAME', 'arnabdhar/YOLOv8-Face-Detection')
-        print(f"Initializing YOLO face detector with model: {model_name}")
+        logger.info(f"Initializing YOLO face detector with model: {model_name}")
         model_path = hf_hub_download(repo_id=model_name, filename="model.pt")
         _face_detector = YOLO(model_path)
     return _face_detector
@@ -102,7 +105,7 @@ def analyze_emotion(image_path):
 
         if isinstance(image_path, str):
             if not os.path.exists(image_path):
-                print(f"Error: File {image_path} does not exist.")
+                logger.error(f"File {image_path} does not exist.")
                 return None, None, None, None
             pil_image = Image.open(image_path)
         elif isinstance(image_path, np.ndarray):
@@ -112,7 +115,7 @@ def analyze_emotion(image_path):
         elif isinstance(image_path, Image.Image):
             pil_image = image_path
         else:
-            print(f"Error: Unsupported image type: {type(image_path)}")
+            logger.error(f"Unsupported image type: {type(image_path)}")
             return None, None, None, None
 
         # Detect face with YOLO and crop it
@@ -140,18 +143,20 @@ def analyze_emotion(image_path):
                     base, ext = os.path.splitext(image_path)
                     cropped_path = f"{base}_face_cropped{ext}"
                     cropped_image.save(cropped_path)
-                    print(f"Successfully saved cropped face to {cropped_path}")
+                    logger.info(f"Successfully saved cropped face to {cropped_path}")
 
                 pil_image_for_model = cropped_image
                 face_detected = True
+                logger.info("Face detected successfully by YOLO face detector.")
             else:
-                print("Warning: No face detected by YOLO.")
+                logger.info("No face detected in the image by YOLO face detector.")
         except Exception as detection_err:
-            print(f"Error during face detection/cropping: {detection_err}.")
+            logger.error(f"Error during face detection/cropping: {detection_err}.")
         face_end = time.perf_counter()
         face_recognition_ms = int(round((face_end - face_start) * 1000))
 
         if not face_detected:
+            logger.info("Skipping emotion analysis because no face was detected.")
             return "none", 0.0, face_recognition_ms, None
 
         emotion_start = time.perf_counter()
@@ -165,10 +170,11 @@ def analyze_emotion(image_path):
             top_prediction = predictions[0]
             emotion_recognized = top_prediction.get("label")
             confidence_score = round(top_prediction.get("score", 0.0), 2)
+            logger.info(f"Detected emotion: '{emotion_recognized}' with confidence score: {confidence_score}")
             return emotion_recognized, confidence_score, face_recognition_ms, emotion_recognition_ms
 
         return None, None, face_recognition_ms, emotion_recognition_ms
 
     except Exception as e:
-        print(f"An error occurred during emotion analysis: {e}")
+        logger.error(f"An error occurred during emotion analysis: {e}")
         return None, None, None, None

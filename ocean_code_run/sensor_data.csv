@@ -1,0 +1,25 @@
+entity_id,state,unit_of_measurement,friendly_name
+sensor.temperature,21.5,°C,Living Room Temperature
+sensor.temperature,22.1,°C,Living Room Temperature
+sensor.temperature,22.8,°C,Living Room Temperature
+sensor.temperature,21.9,°C,Living Room Temperature
+sensor.temperature,20.4,°C,Living Room Temperature
+sensor.humidity,45,%,Living Room Humidity
+sensor.humidity,48,%,Living Room Humidity
+sensor.humidity,52,%,Living Room Humidity
+sensor.humidity,50,%,Living Room Humidity
+sensor.power_consumption,145.2,W,Main Power Meter
+sensor.power_consumption,320.0,W,Main Power Meter
+sensor.power_consumption,210.5,W,Main Power Meter
+sensor.power_consumption,85.0,W,Main Power Meter
+binary_sensor.motion,off,,Living Room Motion Sensor
+binary_sensor.motion,on,,Living Room Motion Sensor
+binary_sensor.motion,on,,Living Room Motion Sensor
+binary_sensor.motion,off,,Living Room Motion Sensor
+light.living_room_light,on,,Living Room Ceiling Light
+light.living_room_light,on,,Living Room Ceiling Light
+light.living_room_light,off,,Living Room Ceiling Light
+sensor.co2,420,ppm,Indoor Air Quality CO2
+sensor.co2,450,ppm,Indoor Air Quality CO2
+sensor.co2,510,ppm,Indoor Air Quality CO2
+sensor.co2,480,ppm,Indoor Air Quality CO2
