@@ -106,14 +106,25 @@ Before deploying SHERE, ensure your host environment meets the following minimum
 
 Ensure you have [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
 
-### 1. Start Services
-SHERE uses a pre-built Docker image hosted on GitHub Container Registry (`ghcr.io/adrian-wozniak-wat/shere:latest`). Simply run:
+### ⚡ Fast Preview (Without Home Assistant)
+
+The easiest way to see and test the application without a live Home Assistant setup is to run:
+
+```bash
+MOCK_HA=true docker compose up
+```
+
+This automatically launches a built-in mock Home Assistant server populated with sample sensor data and mock camera snapshots so you can immediately explore the app's full capabilities.
+
+### 🛠️ Standard Setup (With Home Assistant)
+
+If you have a Home Assistant setup, simply running `docker compose up` is enough:
 
 ```bash
 docker compose up -d
 ```
 
-This will automatically pull the image and run five background services:
+This will run the core background services:
 *   `db`: PostgreSQL database server.
 *   `rabbitmq`: The message broker queue.
 *   `web`: The Django web portal (accessible at `http://localhost:8000`).
@@ -121,7 +132,7 @@ This will automatically pull the image and run five background services:
 *   `celery_beat`: Cron scheduler dispatching tasks every 30 seconds.
 
 > [!IMPORTANT]
-> **Security Notice**: Creating a `.env` file is optional because fallback default values are built-in for zero-configuration startup. However, **for security reasons, it is strongly recommended to set custom environment variables locally** in production or non-isolated deployments.
+> **Security Notice**: Creating a `.env` file is optional because fallback default values are built-in for zero-configuration startup. However, **it is still strongly advised to set environment variables for security reasons** in non-isolated or production deployments.
 
 #### Environment Variables
 
@@ -129,6 +140,7 @@ The following environment variables can be customized:
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
+| `MOCK_HA` | Enable mock Home Assistant server for fast previewing | `false` |
 | `DB_USER` | PostgreSQL database user | `admin` |
 | `DB_PASSWORD` | PostgreSQL database password | `admin123` |
 | `DB_HOST` | Database host address | `127.0.0.1` |
