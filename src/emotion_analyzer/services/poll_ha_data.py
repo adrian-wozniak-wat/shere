@@ -44,6 +44,9 @@ def poll_ha_data():
     cameras = list(Camera.objects.all())
     entities = list(Entity.objects.all())
 
+    if not cameras and not entities:
+        logger.warning("No cameras or entities registered in database. Polling cycle will be created with no camera/entity records.")
+
     # Build HA Url and retrieve token
     ha_url = f"http://{ha_credentials.host}:{ha_credentials.port}"
     token = ha_credentials.token

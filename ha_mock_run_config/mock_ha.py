@@ -2,31 +2,36 @@
 import os
 import csv
 import json
+import random
 import mimetypes
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 
 PORT = int(os.environ.get("MOCK_HA_PORT", 8123))
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PHOTOS_DIR = os.path.join(SCRIPT_DIR, "ocean_photos")
+PHOTOS_DIR = os.path.join(SCRIPT_DIR, "mock_photos")
 CSV_PATH = os.path.join(SCRIPT_DIR, "sensor_data.csv")
 
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+    daemon_threads = True
 
 
 class SensorDataReader:
     def __init__(self, csv_path):
         self.csv_path = csv_path
         self.entity_rows = {}
-        self.entity_indices = {}
         self.load_data()
 
     def load_data(self):
         if not os.path.exists(self.csv_path):
-            print(f"[MockHA] CSV file not found at {self.csv_path}. Using fallback defaults.")
+            print(f"[MockHA] CSV file not found at {self.csv_path}.")
             return
 
         self.entity_rows = {}
-        self.entity_indices = {}
         try:
             with open(self.csv_path, mode='r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
@@ -35,7 +40,6 @@ class SensorDataReader:
                     if eid:
                         if eid not in self.entity_rows:
                             self.entity_rows[eid] = []
-                            self.entity_indices[eid] = 0
                         self.entity_rows[eid].append(row)
 
             print(f"[MockHA] Loaded sensor mock data for entities: {list(self.entity_rows.keys())}")
@@ -46,18 +50,19 @@ class SensorDataReader:
         if not self.entity_rows:
             self.load_data()
 
+        # Check exact match or fallback
         target_eid = entity_id
-        if target_eid not in self.entity_rows and self.entity_rows:
-            target_eid = next(iter(self.entity_rows))
+        if target_eid not in self.entity_rows:
+            if entity_id in ("mock_camera", "camera.mock_camera"):
+                return "idle", {"friendly_name": "Mock Camera"}
+            elif self.entity_rows:
+                target_eid = next(iter(self.entity_rows))
 
         if target_eid not in self.entity_rows:
-            return "21.5", {"unit_of_measurement": "°C"}
+            return "21.5", {"unit_of_measurement": "°C", "friendly_name": entity_id}
 
         rows = self.entity_rows[target_eid]
-        idx = self.entity_indices[target_eid]
-        row = rows[idx]
-
-        self.entity_indices[target_eid] = (idx + 1) % len(rows)
+        row = random.choice(rows)
 
         state = row.get("state", "unknown")
         attributes = {}
@@ -81,6 +86,11 @@ class SensorDataReader:
                 "state": st,
                 "attributes": attrs
             })
+        states.append({
+            "entity_id": "mock_camera",
+            "state": "idle",
+            "attributes": {"friendly_name": "Mock Camera"}
+        })
         return states
 
 
@@ -88,10 +98,9 @@ sensor_reader = SensorDataReader(CSV_PATH)
 
 
 class MockHAHandler(BaseHTTPRequestHandler):
-    photos_index = 0
 
     @classmethod
-    def get_next_photo(cls):
+    def get_random_photo(cls):
         files = []
         if os.path.exists(PHOTOS_DIR):
             for entry in os.listdir(PHOTOS_DIR):
@@ -99,16 +108,11 @@ class MockHAHandler(BaseHTTPRequestHandler):
                 if ext in IMAGE_EXTENSIONS:
                     files.append(os.path.join(PHOTOS_DIR, entry))
 
-        files.sort()
         if not files:
             print(f"[MockHA] Warning: No supported image files found in {PHOTOS_DIR}")
             return None, "image/jpeg"
 
-        if cls.photos_index >= len(files):
-            cls.photos_index = 0
-
-        photo_path = files[cls.photos_index]
-        cls.photos_index = (cls.photos_index + 1) % len(files)
+        photo_path = random.choice(files)
 
         content_type, _ = mimetypes.guess_type(photo_path)
         if not content_type:
@@ -129,7 +133,7 @@ class MockHAHandler(BaseHTTPRequestHandler):
 
         # 2. Camera proxy endpoint: /api/camera_proxy/<camera_id>
         if "/api/camera_proxy/" in self.path:
-            photo_path, content_type = self.get_next_photo()
+            photo_path, content_type = self.get_random_photo()
             if photo_path and os.path.exists(photo_path):
                 with open(photo_path, "rb") as f:
                     content = f.read()
@@ -138,7 +142,7 @@ class MockHAHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Length", str(len(content)))
                 self.end_headers()
                 self.wfile.write(content)
-                print(f"[MockHA] Served camera proxy snapshot using '{os.path.basename(photo_path)}'")
+                print(f"[MockHA] Served camera proxy snapshot using random photo '{os.path.basename(photo_path)}'")
             else:
                 self.send_response(404)
                 self.end_headers()
@@ -167,11 +171,28 @@ class MockHAHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(states).encode("utf-8"))
             return
 
-        # Fallback response
+        # 4. Mock every other HA endpoint
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({"state": "ok"}).encode("utf-8"))
+        self.wfile.write(json.dumps({"message": "API running.", "state": "ok"}).encode("utf-8"))
+
+    def do_HEAD(self):
+        if "/api/camera_proxy/" in self.path:
+            photo_path, content_type = self.get_random_photo()
+            if photo_path and os.path.exists(photo_path):
+                size = os.path.getsize(photo_path)
+                self.send_response(200)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(size))
+                self.end_headers()
+            else:
+                self.send_response(404)
+                self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
 
     def log_message(self, format, *args):
         # Suppress verbose server log output
@@ -180,7 +201,7 @@ class MockHAHandler(BaseHTTPRequestHandler):
 
 def run():
     server_address = ('', PORT)
-    httpd = HTTPServer(server_address, MockHAHandler)
+    httpd = ThreadedHTTPServer(server_address, MockHAHandler)
     print(f"[MockHA] Mock Home Assistant server running on http://127.0.0.1:{PORT}")
     try:
         httpd.serve_forever()

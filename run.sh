@@ -56,14 +56,24 @@ else:
         exec python src/manage.py runserver 0.0.0.0:8000
         ;;
     worker)
-        wait_for_db
-        echo "Starting Celery Worker..."
-        exec celery -A config worker --loglevel=info --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+        MOCK_HA_LOWER=$(echo "${MOCK_HA:-false}" | tr '[:upper:]' '[:lower:]')
+        if [ "$MOCK_HA_LOWER" = "true" ] || [ "$MOCK_HA_LOWER" = "1" ]; then
+            echo "MOCK_HA is enabled. Executing ha_mock_run_config/run.sh..."
+            exec bash ha_mock_run_config/run.sh
+        else
+            wait_for_db
+            echo "Running Django Database Migrations..."
+            python src/manage.py migrate --noinput
+            echo "Starting Celery Worker..."
+            exec celery -A config worker --loglevel=info --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+        fi
         ;;
     beat)
         wait_for_db
+        echo "Running Django Database Migrations..."
+        python src/manage.py migrate --noinput
         echo "Starting Celery Beat..."
-        exec celery -A config beat --loglevel=info
+        exec celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
         ;;
     *)
         echo "Error: Invalid argument '$1'. Must be one of: web, worker, beat"

@@ -211,18 +211,24 @@ def run_page_view(request):
             if period_val not in ['seconds', 'minutes', 'hours', 'days']:
                 period_val = 'seconds'
                 
+            from django.utils import timezone
+            from django_celery_beat.models import PeriodicTasks
+
             schedule, created = IntervalSchedule.objects.get_or_create(
                 every=every_val,
                 period=period_val,
             )
-            PeriodicTask.objects.update_or_create(
+            task, _ = PeriodicTask.objects.update_or_create(
                 name=task_name,
                 defaults={
                     'interval': schedule,
                     'task': 'emotion_analyzer.tasks.analyze_emotions',
                     'enabled': True,
+                    'start_time': timezone.now(),
+                    'last_run_at': None,
                 }
             )
+            PeriodicTasks.changed(task)
             return redirect('run_page')
             
         elif action == 'stop':
