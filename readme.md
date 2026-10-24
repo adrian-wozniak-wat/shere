@@ -9,7 +9,7 @@ This data provides researchers and smart home enthusiasts with empirical logs to
 ## 🌟 Key Features
 
 *   **🔒 Secure Credentials Store**: Sensitive Long-Lived Access Tokens (LLAT) for Home Assistant are encrypted using symmetric Fernet encryption (`cryptography`) before being persisted in the database.
-*   **🧠 Deep Learning Emotion Detection**: Leverages **HuggingFace Transformers** (`dima806/facial_emotions_image_detection`) and **YOLOv8** (`arnabdhar/YOLOv8-Face-Detection`) to perform high-fidelity face detection and emotion classification (Happy, Sad, Angry, Surprised, Fear, Disgust, Neutral) with confidence scores.
+*   **🧠 Dual-Backend Emotion Detection**: Supports two interchangeable emotion recognition backends — **EmotiEffLib / HSEmotion** (default) and **HuggingFace Transformers** — combined with **YOLOv8** (`arnabdhar/YOLOv8-Face-Detection`) for face detection. Switch backends and models at any time via environment variables.
 *   **⏱️ Distributed Periodic Polling**: Automated heartbeat checks driven by **Celery** and **Celery Beat** run every 30 seconds to query device states and camera frames in parallel, preventing UI blocking.
 *   **📊 Unified Data Analysis Matrix**: A comprehensive dashboard showing historical poll cycles aligning camera snapshots with concurrent smart entity states.
 *   **📥 CSV Exporter**: Export the unified database logs with a single click to perform data modeling, statistical correlation, or train predictive models.
@@ -149,7 +149,9 @@ The following environment variables can be customized:
 | `ENCRYPTION_KEY` | Symmetric Fernet key for encrypting stored access tokens | Built-in default key |
 | `APP_USER` | Initial Django admin username created on startup | `admin` |
 | `APP_PASS` | Initial Django admin password created on startup | `admin123` |
-| `EMOTION_MODEL_NAME` | Deep learning emotion classification model | `dima806/facial_emotions_image_detection` |
+| `EMOTION_MODEL_BACKEND` | Emotion recognition backend: `emotiefflib` or `dima` | `emotiefflib` |
+| `EMOTION_MODEL_NAME` | Model name used by the selected backend (see section below) | `enet_b0_8_best_afew` |
+| `FACE_DETECTOR_MODEL_NAME` | HuggingFace repo for the YOLO face detector | `arnabdhar/YOLOv8-Face-Detection` |
 | `CELERY_WORKER_CONCURRENCY` | Celery worker process concurrency | `2` |
 | `DOCKER_IMAGE` | SHERE container image registry path | `ghcr.io/adrian-wozniak-wat/shere:latest` |
 
@@ -184,6 +186,83 @@ docker compose exec web python src/manage.py createsuperuser
 
 ### 3. Verify the App Status
 Access `http://localhost:8000` in your web browser, log in using your superuser credentials, navigate to the **Run** tab, and execute the connection diagnostic suite to verify API credentials, sensor bindings, and model availability.
+
+---
+
+## 🧠 Changing Emotion Models
+
+SHERE supports two interchangeable emotion recognition backends, selected through the `EMOTION_MODEL_BACKEND` environment variable. Both backends share the same YOLO face detector and expose their result through an identical interface, so switching is seamless.
+
+---
+
+### Backend 1 — EmotiEffLib / HSEmotion (default)
+
+`EMOTION_MODEL_BACKEND=emotiefflib`
+
+Uses the [EmotiEffLib](https://github.com/sb-ai-lab/EmotiEffLib) (formerly HSEmotion) library — a lightweight, efficient emotion recognizer that supports ONNX and PyTorch inference backends.
+
+Set `EMOTION_MODEL_NAME` to one of the built-in EmotiEffLib model identifiers:
+
+| `EMOTION_MODEL_NAME` | Description |
+| :--- | :--- |
+| `enet_b0_8_best_afew` | EfficientNet-B0 trained on AFEW — good general-purpose choice |
+| `enet_b0_8_best_vgaf` | EfficientNet-B0 trained on VGAF — alternative general-purpose model |
+| `enet_b0_8_va_mtl` | EfficientNet-B0 multi-task learning variant |
+| `enet_b2_8` | EfficientNet-B2 — larger and more accurate, higher memory usage |
+| `enet_b2_8_best` | Best-performing EfficientNet-B2 variant |
+
+**Example `.env` (EmotiEffLib — default):**
+
+```env
+EMOTION_MODEL_BACKEND=emotiefflib
+EMOTION_MODEL_NAME=enet_b0_8_best_afew
+```
+
+---
+
+### Backend 2 — Dima / HuggingFace Transformers
+
+`EMOTION_MODEL_BACKEND=dima`
+
+Uses a standard HuggingFace `image-classification` pipeline. Any compatible model hosted on the [HuggingFace Hub](https://huggingface.co/models?pipeline_tag=image-classification) can be used by setting `EMOTION_MODEL_NAME` to its repository identifier.
+
+| `EMOTION_MODEL_NAME` | Description |
+| :--- | :--- |
+| `dima806/facial_emotions_image_detection` | Original default — 7-class emotion classifier |
+| Any `image-classification` HF repo | Provide the repo identifier in `owner/repo` format |
+
+**Example `.env` (Dima/HuggingFace):**
+
+```env
+EMOTION_MODEL_BACKEND=dima
+EMOTION_MODEL_NAME=dima806/facial_emotions_image_detection
+```
+
+---
+
+### Applying the change
+
+1. Edit your `.env` file (or set the variables in your shell):
+
+   ```bash
+   # Switch to EmotiEffLib with a specific model
+   EMOTION_MODEL_BACKEND=emotiefflib
+   EMOTION_MODEL_NAME=enet_b2_8_best
+   ```
+
+2. Rebuild and restart the containers so the new image downloads during startup:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   The selected model is downloaded automatically on first use. Subsequent restarts reuse the cached model.
+
+> [!TIP]
+> The model is loaded lazily — it is only downloaded and initialised when the first emotion analysis task runs, not at container startup. Check the `celery_worker` logs to confirm which backend and model are active.
+
+> [!NOTE]
+> If `EMOTION_MODEL_BACKEND` is set to an unrecognised value, the system automatically falls back to `emotiefflib` and logs a warning.
 
 ---
 

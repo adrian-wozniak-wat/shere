@@ -8,7 +8,8 @@ x-common-env: &common-env
   CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://guest:guest@127.0.0.1:5672//}
   APP_USER: ${APP_USER:-admin}
   APP_PASS: ${APP_PASS:-admin123}
-  EMOTION_MODEL_NAME: ${EMOTION_MODEL_NAME:-dima806/facial_emotions_image_detection}
+  EMOTION_MODEL_BACKEND: ${EMOTION_MODEL_BACKEND:-emotiefflib}
+  EMOTION_MODEL_NAME: ${EMOTION_MODEL_NAME:-enet_b0_8_best_afew}
   CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
   PYTORCH_CUDA_ALLOC_CONF: ${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}
   MOCK_HA: ${MOCK_HA:-false}

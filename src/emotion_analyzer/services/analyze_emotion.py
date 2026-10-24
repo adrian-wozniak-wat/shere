@@ -3,9 +3,14 @@ import cv2
 import requests
 import numpy as np
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Snapshot utilities
+# ---------------------------------------------------------------------------
 
 def save_camera_snapshot(ha_url, camera_entity, files_directory, timestamp, token):
     """
@@ -63,18 +68,135 @@ def save_camera_snapshot(ha_url, camera_entity, files_directory, timestamp, toke
         return None
 
 
+# ---------------------------------------------------------------------------
+# Model backend selection
+# ---------------------------------------------------------------------------
+
+# Supported backend identifiers
+BACKEND_EMOTIEFFLIB = "emotiefflib"
+BACKEND_DIMA = "dima"
+
+_VALID_BACKENDS = {BACKEND_EMOTIEFFLIB, BACKEND_DIMA}
+
+
+def _get_backend() -> str:
+    """Return the active emotion model backend (normalised to lower-case)."""
+    backend = os.environ.get("EMOTION_MODEL_BACKEND", BACKEND_EMOTIEFFLIB).strip().lower()
+    if backend not in _VALID_BACKENDS:
+        logger.warning(
+            f"Unknown EMOTION_MODEL_BACKEND '{backend}'. "
+            f"Falling back to '{BACKEND_EMOTIEFFLIB}'."
+        )
+        backend = BACKEND_EMOTIEFFLIB
+    return backend
+
+
+# ---------------------------------------------------------------------------
+# EmotiEffLib backend (hse_face_emotion / HSEmotion)
+# ---------------------------------------------------------------------------
+
+_emotiefflib_recognizer = None
+
+
+def _get_emotiefflib_recognizer():
+    """Lazily initialise and cache the EmotiEffLib HSEmotionRecognizer."""
+    global _emotiefflib_recognizer
+    if _emotiefflib_recognizer is None:
+        from emotiefflib.facial_analysis import EmotiEffLibRecognizer
+        model_name = os.environ.get(
+            "EMOTION_MODEL_NAME", "enet_b0_8_best_afew"
+        )
+        device = "cuda" if _cuda_available() else "cpu"
+        logger.info(
+            f"Initialising EmotiEffLib recognizer | model='{model_name}' device='{device}'"
+        )
+        _emotiefflib_recognizer = EmotiEffLibRecognizer(
+            engine="torch", model_name=model_name, device=device
+        )
+    return _emotiefflib_recognizer
+
+
+def _cuda_available() -> bool:
+    try:
+        import torch
+        return torch.cuda.is_available()
+    except ImportError:
+        return False
+
+
+def _run_emotiefflib(pil_image_for_model):
+    """
+    Run EmotiEffLib inference on a (cropped) PIL image.
+
+    Returns:
+        tuple: (emotion_label: str, confidence: float)
+    """
+    import numpy as np
+
+    recognizer = _get_emotiefflib_recognizer()
+    # EmotiEffLibRecognizer expects a numpy array (RGB)
+    face_np = np.array(pil_image_for_model.convert("RGB"))
+    labels, scores = recognizer.predict_emotions(face_np, logits=False)
+    # For a single image, labels is a one-element list and scores has shape (1, N)
+    emotion_label = labels[0] if isinstance(labels, (list, tuple)) else labels
+    confidence = float(np.max(scores))
+    return emotion_label, round(confidence, 2)
+
+
+# ---------------------------------------------------------------------------
+# Dima / HuggingFace transformers backend
+# ---------------------------------------------------------------------------
+
 _video_pipe = None
-_face_detector = None
 
 
-def get_emotion_pipeline():
+def _get_dima_pipeline():
+    """Lazily initialise and cache the HuggingFace image-classification pipeline."""
     global _video_pipe
     if _video_pipe is None:
         from transformers import pipeline
-        model_name = os.environ.get('EMOTION_MODEL_NAME', 'dima806/facial_emotions_image_detection')
-        logger.info(f"Initializing emotion pipeline with model: {model_name}")
+        model_name = os.environ.get(
+            "EMOTION_MODEL_NAME", "dima806/facial_emotions_image_detection"
+        )
+        logger.info(
+            f"Initialising Dima/HuggingFace pipeline | model='{model_name}'"
+        )
         _video_pipe = pipeline("image-classification", model=model_name)
     return _video_pipe
+
+
+def _run_dima(pil_image_for_model):
+    """
+    Run HuggingFace transformers pipeline inference on a (cropped) PIL image.
+
+    Returns:
+        tuple: (emotion_label: str, confidence: float)
+    """
+    pipe = _get_dima_pipeline()
+    predictions = pipe(pil_image_for_model)
+    if predictions:
+        top = predictions[0]
+        return top.get("label"), round(top.get("score", 0.0), 2)
+    return None, None
+
+
+# ---------------------------------------------------------------------------
+# Public helpers (kept for backward compatibility / lazy init callers)
+# ---------------------------------------------------------------------------
+
+def get_emotion_pipeline():
+    """Return the active emotion pipeline/recognizer object (for backward compat)."""
+    backend = _get_backend()
+    if backend == BACKEND_EMOTIEFFLIB:
+        return _get_emotiefflib_recognizer()
+    return _get_dima_pipeline()
+
+
+# ---------------------------------------------------------------------------
+# YOLO face detector (shared by both backends)
+# ---------------------------------------------------------------------------
+
+_face_detector = None
 
 
 def get_face_detector():
@@ -82,22 +204,35 @@ def get_face_detector():
     if _face_detector is None:
         from ultralytics import YOLO
         from huggingface_hub import hf_hub_download
-        model_name = os.environ.get('FACE_DETECTOR_MODEL_NAME', 'arnabdhar/YOLOv8-Face-Detection')
+        model_name = os.environ.get(
+            "FACE_DETECTOR_MODEL_NAME", "arnabdhar/YOLOv8-Face-Detection"
+        )
         logger.info(f"Initializing YOLO face detector with model: {model_name}")
         model_path = hf_hub_download(repo_id=model_name, filename="model.pt")
         _face_detector = YOLO(model_path)
     return _face_detector
 
 
-import time
-
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
 
 def analyze_emotion(image_path):
     """
-    Reads a saved image file and analyzes the dominant emotion.
+    Reads a saved image file (or in-memory frame) and analyses the dominant emotion.
+
+    The emotion model backend is selected via the ``EMOTION_MODEL_BACKEND``
+    environment variable:
+
+    * ``"emotiefflib"`` (default) – uses the HSEmotion / EmotiEffLib library.
+      Configure the model with ``EMOTION_MODEL_NAME`` (e.g. ``enet_b0_8_best_afew``).
+    * ``"dima"`` – uses a HuggingFace ``image-classification`` pipeline.
+      Configure the model with ``EMOTION_MODEL_NAME``
+      (e.g. ``dima806/facial_emotions_image_detection``).
 
     Returns:
-        tuple: (emotion_recognized, confidence_score, face_recognition_milliseconds, emotion_recognition_milliseconds)
+        tuple: (emotion_recognized, confidence_score,
+                face_recognition_milliseconds, emotion_recognition_milliseconds)
                or (None, None, None, None) if failed.
     """
     try:
@@ -118,8 +253,11 @@ def analyze_emotion(image_path):
             logger.error(f"Unsupported image type: {type(image_path)}")
             return None, None, None, None
 
-        # Detect face with YOLO and crop it
+        # ------------------------------------------------------------------
+        # Face detection with YOLO (shared across backends)
+        # ------------------------------------------------------------------
         face_detected = False
+        pil_image_for_model = pil_image  # fallback – overwritten when face found
         face_start = time.perf_counter()
         try:
             face_detector = get_face_detector()
@@ -159,18 +297,28 @@ def analyze_emotion(image_path):
             logger.info("Skipping emotion analysis because no face was detected.")
             return "none", 0.0, face_recognition_ms, None
 
+        # ------------------------------------------------------------------
+        # Emotion recognition – dispatch to selected backend
+        # ------------------------------------------------------------------
+        backend = _get_backend()
+        logger.info(f"Running emotion analysis with backend='{backend}'")
+
         emotion_start = time.perf_counter()
-        pipe = get_emotion_pipeline()
-        predictions = pipe(pil_image_for_model)
+
+        if backend == BACKEND_EMOTIEFFLIB:
+            emotion_recognized, confidence_score = _run_emotiefflib(pil_image_for_model)
+        else:  # BACKEND_DIMA
+            emotion_recognized, confidence_score = _run_dima(pil_image_for_model)
+
         emotion_end = time.perf_counter()
         emotion_recognition_ms = int(round((emotion_end - emotion_start) * 1000))
 
-        if predictions:
-            # The predictions are sorted by score descending, so the first one is dominant
-            top_prediction = predictions[0]
-            emotion_recognized = top_prediction.get("label")
-            confidence_score = round(top_prediction.get("score", 0.0), 2)
-            logger.info(f"Detected emotion: '{emotion_recognized}' with confidence score: {confidence_score}")
+        if emotion_recognized is not None:
+            logger.info(
+                f"Detected emotion: '{emotion_recognized}' "
+                f"with confidence score: {confidence_score} "
+                f"(backend='{backend}')"
+            )
             return emotion_recognized, confidence_score, face_recognition_ms, emotion_recognition_ms
 
         return None, None, face_recognition_ms, emotion_recognition_ms
