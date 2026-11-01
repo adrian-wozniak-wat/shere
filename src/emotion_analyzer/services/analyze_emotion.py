@@ -69,6 +69,52 @@ def save_camera_snapshot(ha_url, camera_entity, files_directory, timestamp, toke
 
 
 # ---------------------------------------------------------------------------
+# Photo file retention policy
+# ---------------------------------------------------------------------------
+
+PHOTO_POLICY_ALL = "all"
+PHOTO_POLICY_EMOTIONS = "emotions"
+PHOTO_POLICY_NONE = "none"
+
+_VALID_PHOTO_POLICIES = {PHOTO_POLICY_ALL, PHOTO_POLICY_EMOTIONS, PHOTO_POLICY_NONE}
+
+
+def get_photo_file_policy() -> str:
+    """Return the active PHOTO_FILE_POLICY ("all", "emotions" or "none")."""
+    policy = os.environ.get("PHOTO_FILE_POLICY", PHOTO_POLICY_NONE).strip().lower()
+    if policy not in _VALID_PHOTO_POLICIES:
+        logger.warning(
+            f"Unknown PHOTO_FILE_POLICY '{policy}'. Falling back to '{PHOTO_POLICY_NONE}'."
+        )
+        policy = PHOTO_POLICY_NONE
+    return policy
+
+
+def should_keep_photo(emotion_recognition_performed: bool) -> bool:
+    """Decide whether snapshot files should be kept according to PHOTO_FILE_POLICY."""
+    policy = get_photo_file_policy()
+    if policy == PHOTO_POLICY_ALL:
+        return True
+    if policy == PHOTO_POLICY_EMOTIONS:
+        return emotion_recognition_performed
+    return False
+
+
+def delete_snapshot_files(image_path):
+    """Delete a snapshot file and its associated cropped face file (if any)."""
+    if not image_path:
+        return
+    base, ext = os.path.splitext(image_path)
+    for path in (image_path, f"{base}_face_cropped{ext}"):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+                logger.info(f"Removed snapshot file {path} (PHOTO_FILE_POLICY)")
+        except OSError as e:
+            logger.error(f"Could not remove snapshot file {path}: {e}")
+
+
+# ---------------------------------------------------------------------------
 # Model backend selection
 # ---------------------------------------------------------------------------
 

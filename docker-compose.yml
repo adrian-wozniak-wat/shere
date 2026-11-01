@@ -13,6 +13,7 @@ x-common-env: &common-env
   CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
   PYTORCH_CUDA_ALLOC_CONF: ${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}
   MOCK_HA: ${MOCK_HA:-false}
+  PHOTO_FILE_POLICY: ${PHOTO_FILE_POLICY:-none}  # all | emotions | none
 
 x-common-service: &common-service
   build: .

@@ -21,6 +21,43 @@ import tempfile
 User = get_user_model()
 TEST_MEDIA_DIR = os.path.join(settings.BASE_DIR, 'temp_test_media')
 
+class PhotoFilePolicyTest(TestCase):
+    def _make_files(self, temp_dir):
+        img = os.path.join(temp_dir, 'frame_1.jpg')
+        crop = os.path.join(temp_dir, 'frame_1_face_cropped.jpg')
+        for p in (img, crop):
+            with open(p, 'wb') as f:
+                f.write(b'x')
+        return img, crop
+
+    def test_should_keep_photo(self):
+        from emotion_analyzer.services.analyze_emotion import should_keep_photo
+        cases = {
+            'all': (True, True),
+            'emotions': (True, False),
+            'none': (False, False),
+            'bogus': (False, False),
+        }
+        for policy, (with_emotion, without_emotion) in cases.items():
+            with patch.dict(os.environ, {'PHOTO_FILE_POLICY': policy}):
+                self.assertEqual(should_keep_photo(True), with_emotion, policy)
+                self.assertEqual(should_keep_photo(False), without_emotion, policy)
+
+    def test_default_policy_is_none(self):
+        from emotion_analyzer.services.analyze_emotion import get_photo_file_policy
+        env = {k: v for k, v in os.environ.items() if k != 'PHOTO_FILE_POLICY'}
+        with patch.dict(os.environ, env, clear=True):
+            self.assertEqual(get_photo_file_policy(), 'none')
+
+    def test_delete_snapshot_files_removes_crop_too(self):
+        from emotion_analyzer.services.analyze_emotion import delete_snapshot_files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            img, crop = self._make_files(temp_dir)
+            delete_snapshot_files(img)
+            self.assertFalse(os.path.exists(img))
+            self.assertFalse(os.path.exists(crop))
+
+
 @override_settings(MEDIA_ROOT=TEST_MEDIA_DIR)
 class PollHADataTest(TestCase):
     def setUp(self):
@@ -39,6 +76,7 @@ class PollHADataTest(TestCase):
         self.assertIsNone(cycle)
         self.assertEqual(PollCycle.objects.count(), 0)
 
+    @patch.dict(os.environ, {'PHOTO_FILE_POLICY': 'all'})
     @patch('emotion_analyzer.services.poll_ha_data.get_entity_data')
     @patch('emotion_analyzer.services.poll_ha_data.analyze_emotion')
     @patch('emotion_analyzer.services.poll_ha_data.save_camera_snapshot')

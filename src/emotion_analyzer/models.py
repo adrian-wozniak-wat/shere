@@ -27,6 +27,12 @@ class PollCycle(models.Model):
     cycle_length_milliseconds = models.IntegerField(blank=True, null=True)
     face_recognition_milliseconds = models.IntegerField(blank=True, null=True)
     emotion_recognition_milliseconds = models.IntegerField(blank=True, null=True)
+    # Sum of camera image fetch times (HA camera_proxy API) for all cameras in the cycle
+    image_loading_milliseconds = models.IntegerField(blank=True, null=True)
+    # Sum of entity state fetch times (HA states API) for all entities in the cycle
+    entities_loading_milliseconds = models.IntegerField(blank=True, null=True)
+    # Time between the start of the first HA API call and the end of the last HA API call
+    api_window_milliseconds = models.IntegerField(blank=True, null=True)
 
     class Meta:
         ordering = ['-timestamp']
@@ -48,6 +54,7 @@ class EntityStatus(models.Model):
     poll_cycle = models.ForeignKey(PollCycle, on_delete=models.CASCADE, related_name='statuses')
     entity = models.ForeignKey(Entity, on_delete=models.CASCADE, related_name='statuses')
     state_value = models.CharField(max_length=100)
+    data_loading_milliseconds = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.entity.entity_id}: {self.state_value}"
@@ -73,6 +80,7 @@ class CameraSnapshot(models.Model):
     confidence_score = models.FloatField(blank=True, null=True)
     face_recognition_milliseconds = models.IntegerField(blank=True, null=True)
     emotion_recognition_milliseconds = models.IntegerField(blank=True, null=True)
+    image_loading_milliseconds = models.IntegerField(blank=True, null=True)
 
 
     def __str__(self):
